@@ -30,13 +30,20 @@ static void on_get(uint32_t attributeId, uint16_t getId, void *context)
     }
 }
 
-static void on_notify(uint32_t attributeId, uint8_t *value, int length, void *context)
+static void set_hubby_state(int state)
 {
-    if (attributeId != AF_ATTR_HUBBY_OTA_UPGRADE_PATH) {
-        AFLOG_WARNING("notification_unknown:attributeId=%d", attributeId);
-        return;
-    }
+    /* This is where you would set the LED state */
+    AFLOG_INFO("Setting hub state to %d", state);
+}
 
+static void on_hubby_state(uint8_t *value, int length)
+{
+    int hubbyState = *value;
+    set_hubby_state(hubbyState);
+}
+
+static void on_ota_upgrade_path(uint8_t *value, int length)
+{
     /* We have received the OTA notification. The value contains the path to the OTA image */
     AFLOG_INFO("ota_notification:path=%s", value);
 
@@ -110,10 +117,40 @@ static void on_notify(uint32_t attributeId, uint8_t *value, int length, void *co
     af_util_system("/sbin/sysupgrade %s", imageSrcPath);
 }
 
+static void on_notify(uint32_t attributeId, uint8_t *value, int length, void *context)
+{
+    switch (attributeId) {
+        case AF_ATTR_HUBBY_STATE :
+            on_hubby_state(value, length);
+            break;
+        case AF_ATTR_HUBBY_OTA_UPGRADE_PATH :
+            on_ota_upgrade_path(value, length);
+            break;
+        default :
+            AFLOG_WARNING("notification_unknown:attributeId=%d", attributeId);
+            break;
+    }
+}
+
+static void on_get_hubby_state(uint8_t status, uint32_t attrId, uint8_t *value, int length, void *context)
+{
+    if (attrId == AF_ATTR_HUBBY_STATE) {
+        if (length == 1) {
+            set_hubby_state(*value);
+        } else {
+            AFLOG_WARNING("on_get_hubby_state_len:length=%d", length);
+        }
+    }
+}
+
 static void on_open(int status, void *context)
 {
     if (status != AF_ATTR_STATUS_OK) {
         AFLOG_ERR("open_failed:status=%d", status);
+    }
+    status = af_attr_get(AF_ATTR_HUBBY_STATE, on_get_hubby_state, NULL);
+    if (status != AF_ATTR_STATUS_OK) {
+        AFLOG_WARNING("on_open_get_hubby_state:status=%d", status);
     }
 }
 
@@ -135,7 +172,7 @@ int main(int argc, char *argv[])
     }
 
     af_attr_range_t r[] = {
-        { AF_ATTR_HUBBY_OTA_UPGRADE_PATH, AF_ATTR_HUBBY_OTA_UPGRADE_PATH }
+        { AF_ATTR_HUBBY_STATE, AF_ATTR_HUBBY_OTA_UPGRADE_PATH }
     };
 
     int status = af_attr_open(
