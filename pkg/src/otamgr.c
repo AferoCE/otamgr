@@ -42,6 +42,24 @@ static void on_hubby_state(uint8_t *value, int length)
     set_hubby_state(hubbyState);
 }
 
+#define REBOOT_REASON_FILE_PATH "/afero_nv/reboot_reason"
+
+static void set_reboot_reason(char *reason)
+{
+    int fd = open(REBOOT_REASON_FILE_PATH, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IRGRP);
+    if (fd < 0) {
+        AFLOG_ERR("command_attribute_reboot_reason_open:errno=%d", errno);
+    } else {
+        int nw = write(fd, reason, strlen(reason));
+        close(fd);
+        if (nw < 0) {
+            AFLOG_ERR("set_reboot_reason:errno=%d", errno);
+        }
+    }
+}
+
+#define REBOOT_REASON_FULL_OTA "full_ota"
+
 static void on_ota_upgrade_path(uint8_t *value, int length)
 {
     /* We have received the OTA notification. The value contains the path to the OTA image */
@@ -113,8 +131,41 @@ static void on_ota_upgrade_path(uint8_t *value, int length)
         AFLOG_WARNING("otamgr_logpush:ret=%d:logpush failed", ret);
     }
 
+    set_reboot_reason(REBOOT_REASON_FULL_OTA);
+
     /* upgrade; we should never return from this */
     af_util_system("/sbin/sysupgrade %s", imageSrcPath);
+}
+
+#define REBOOT_REASON_COMMAND "reboot_command"
+#define REBOOT_REASON_FACTORY_RESET "factory_reset"
+
+static void on_hubby_command(uint8_t *value, int length)
+{
+    if (length != 4) {
+        AFLOG_WARNING("command_attribute_bad_size:length=%d",length);
+    }
+    if (length > 0) {
+        uint8_t command = value[0];
+        switch(command) {
+            case 0x01 : /* reboot */
+            case 0x02 : /* factory reset */
+            {
+                sleep(5); /* allow five seconds before rebooting to allow wifistad to erase the credentials */
+                if (command == 0x01) {
+                    set_reboot_reason(REBOOT_REASON_COMMAND);
+                } else {
+                    set_reboot_reason(REBOOT_REASON_FACTORY_RESET);
+                }
+                af_util_system("sync; /usr/bin/logpush ; reboot");
+                break;
+            }
+            case 0x03 : /* factory test mode */
+                /* Add code here to put the device in factory test mode */
+                /* This option is useful for reverse logistics (RMA)    */
+                break;
+        }
+    }
 }
 
 static void on_notify(uint32_t attributeId, uint8_t *value, int length, void *context)
@@ -125,6 +176,9 @@ static void on_notify(uint32_t attributeId, uint8_t *value, int length, void *co
             break;
         case AF_ATTR_HUBBY_OTA_UPGRADE_PATH :
             on_ota_upgrade_path(value, length);
+            break;
+        case AF_ATTR_HUBBY_COMMAND :
+            on_hubby_command(value, length);
             break;
         default :
             AFLOG_WARNING("notification_unknown:attributeId=%d", attributeId);
@@ -172,7 +226,8 @@ int main(int argc, char *argv[])
     }
 
     af_attr_range_t r[] = {
-        { AF_ATTR_HUBBY_STATE, AF_ATTR_HUBBY_OTA_UPGRADE_PATH }
+        { AF_ATTR_HUBBY_STATE, AF_ATTR_HUBBY_OTA_UPGRADE_PATH },
+        { AF_ATTR_HUBBY_COMMAND, AF_ATTR_HUBBY_COMMAND }
     };
 
     int status = af_attr_open(
