@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
     sEventBase = event_base_new();
     if (sEventBase == NULL) {
         AFLOG_ERR("event_base_new_failed:errno=%d", errno);
-        return AF_ATTR_STATUS_NO_SPACE;
+        return 1;
     }
 
     af_attr_range_t r[] = {
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
     if (status != AF_ATTR_STATUS_OK) {
         AFLOG_ERR("af_attr_open:status=%d", status);
         event_base_free(sEventBase);
-        return status;
+        return 1;
     }
 
     event_base_dispatch(sEventBase);
@@ -255,5 +255,5 @@ int main(int argc, char *argv[])
     event_base_free(sEventBase);
 
     closelog();
-    return 0;
+    return 0; /* control should never reach here */
 }
