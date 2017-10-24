@@ -149,15 +149,14 @@ static void on_hubby_command(uint8_t *value, int length)
         uint8_t command = value[0];
         switch(command) {
             case 0x01 : /* reboot */
-            case 0x02 : /* factory reset */
-            {
-                sleep(5); /* allow five seconds before rebooting to allow wifistad to erase the credentials */
-                if (command == 0x01) {
-                    set_reboot_reason(REBOOT_REASON_COMMAND);
-                } else {
-                    set_reboot_reason(REBOOT_REASON_FACTORY_RESET);
-                }
+                sleep(5);
+                set_reboot_reason(REBOOT_REASON_COMMAND);
                 af_util_system("sync; /usr/bin/logpush ; reboot");
+                break;
+            case 0x02 : /* clear credentials */
+            {
+                sleep(7); /* allow five seconds before killing hubby and wifistad to allow it to erase the credentials */
+                af_util_system("killall hubby; killall wifistad");
                 break;
             }
             case 0x03 : /* factory test mode */
