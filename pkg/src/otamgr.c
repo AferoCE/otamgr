@@ -155,8 +155,8 @@ static void on_hubby_command(uint8_t *value, int length)
                 break;
             case 0x02 : /* clear credentials */
             {
-                sleep(7); /* allow five seconds before killing hubby and wifistad to allow it to erase the credentials */
-                af_util_system("killall hubby; killall wifistad");
+                sleep(4); /* allow four seconds before killing hubby to allow wifistad to erase the credentials */
+                af_util_system("killall hubby");
                 break;
             }
             case 0x03 : /* factory test mode */
