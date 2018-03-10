@@ -200,6 +200,7 @@ static void on_open(int status, void *context)
 {
     if (status != AF_ATTR_STATUS_OK) {
         AFLOG_ERR("open_failed:status=%d", status);
+        return;
     }
     status = af_attr_get(AF_ATTR_HUBBY_STATE, on_get_hubby_state, NULL);
     if (status != AF_ATTR_STATUS_OK) {
