@@ -15,7 +15,12 @@
 #include "af_util.h"
 
 static struct event_base *sEventBase = NULL;
+
+#ifdef BUILD_TARGET_DEBUG
 uint32_t g_debugLevel = 3;
+#else
+uint32_t g_debugLevel = 1;
+#endif
 
 #define OTA_PATH_PREFIX "/tmp"
 #define MAX_PATH_LEN 256
