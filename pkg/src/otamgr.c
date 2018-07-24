@@ -116,8 +116,7 @@ static void on_ota_upgrade_path(uint8_t *value, int length)
     unlink(KEEP_FILE_PATH);
     int fd = open(KEEP_FILE_PATH, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     if (fd < 0) {
-        AFLOG_ERR("otamgr_keep_file_create:keep_path=" KEEP_FILE_PATH ":can't create keep file--aborting");
-        return;
+        AFLOG_WARNING("otamgr_keep_file_create:keep_path=" KEEP_FILE_PATH ":can't create keep file");
     } else {
         write(fd, headerDstPath, strlen((char *)headerDstPath));
         close(fd);
