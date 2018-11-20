@@ -189,7 +189,7 @@ static void on_notify(uint32_t attributeId, uint8_t *value, int length, void *co
     }
 }
 
-static void on_get_hubby_state(uint8_t status, uint32_t attrId, uint8_t *value, int length, void *context)
+static void on_get_hubby_state(int status, uint32_t attrId, uint8_t *value, int length, void *context)
 {
     if (attrId == AF_ATTR_HUBBY_STATE) {
         if (length == 1) {
