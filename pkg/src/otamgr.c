@@ -24,7 +24,8 @@ uint32_t g_debugLevel = 1;
 
 #define OTA_PATH_PREFIX "/tmp"
 #define MAX_PATH_LEN 256
-#define KEEP_FILE_PATH "/lib/upgrade/keep.d/afero_ota"
+#define KEEP_FILE_DIR "/lib/upgrade/keep.d"
+#define KEEP_FILE_PATH KEEP_FILE_DIR "/afero_ota"
 
 static void on_get(uint32_t attributeId, uint16_t getId, void *context)
 {
@@ -113,13 +114,18 @@ static void on_ota_upgrade_path(uint8_t *value, int length)
     /* We store a file in /lib/upgrade/keep.d/afero_ota containing the  */
     /* header destination path. OpenWRT will automatically restore this */
     /* file when the upgrade is completed.                              */
-    unlink(KEEP_FILE_PATH);
-    int fd = open(KEEP_FILE_PATH, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-    if (fd < 0) {
-        AFLOG_WARNING("otamgr_keep_file_create:keep_path=" KEEP_FILE_PATH ":can't create keep file");
+    struct stat st;
+    if (stat(KEEP_FILE_DIR, &st) < 0) {
+        AFLOG_INFO("%s_keep_dir:path=%s:errno=%d:assuming we're not running on OpenWRT", __func__, KEEP_FILE_DIR, errno);
     } else {
-        write(fd, headerDstPath, strlen((char *)headerDstPath));
-        close(fd);
+        unlink(KEEP_FILE_PATH);
+        int fd = open(KEEP_FILE_PATH, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+        if (fd < 0) {
+            AFLOG_WARNING("otamgr_keep_file_create:keep_path=" KEEP_FILE_PATH ":can't create keep file");
+        } else {
+            write(fd, headerDstPath, strlen((char *)headerDstPath));
+            close(fd);
+        }
     }
 
     /* now copy the header file onto the root file system */
@@ -138,7 +144,7 @@ static void on_ota_upgrade_path(uint8_t *value, int length)
     set_reboot_reason(REBOOT_REASON_FULL_OTA);
 
     /* upgrade; we should never return from this */
-    af_util_system("/sbin/sysupgrade %s", imageSrcPath);
+    af_util_system("{ /sbin/sysupgrade %s } ; disown -a", imageSrcPath);
 }
 
 #define REBOOT_REASON_COMMAND "reboot_command"
