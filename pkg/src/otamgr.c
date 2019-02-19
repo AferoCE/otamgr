@@ -163,15 +163,13 @@ static void on_hubby_command(uint8_t *value, int length)
                 set_reboot_reason(REBOOT_REASON_COMMAND);
                 af_util_system("sync; /usr/bin/logpush ; reboot");
                 break;
-            case 0x02 : /* clear credentials */
-            {
-                sleep(4); /* allow four seconds before killing hubby to allow wifistad to erase the credentials */
-                af_util_system("killall hubby");
-                break;
-            }
+            /* ignore lobotomize command: hubby now kills itself */
             case 0x03 : /* factory test mode */
                 /* Add code here to put the device in factory test mode */
                 /* This option is useful for reverse logistics (RMA)    */
+                break;
+            default :
+                AFLOG_INFO("on_hubby_command_ignore:command=%02x:command was ignored", command);
                 break;
         }
     }
