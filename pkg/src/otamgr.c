@@ -144,7 +144,7 @@ static void on_ota_upgrade_path(uint8_t *value, int length)
     set_reboot_reason(REBOOT_REASON_FULL_OTA);
 
     /* upgrade; we should never return from this */
-    af_util_system("{ /sbin/sysupgrade %s } ; disown -a", imageSrcPath);
+    af_util_system("{ /sbin/sysupgrade %s; } ; disown -a", imageSrcPath);
 }
 
 #define REBOOT_REASON_COMMAND "reboot_command"
